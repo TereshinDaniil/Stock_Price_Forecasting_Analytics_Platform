@@ -31,7 +31,6 @@ PARQUET_FILES = {
     "1w": "week_data.parquet",
 }
 
-
 TIMEFRAME_CONFIG = {
     "1m":    {"td_interval": "1min",   "step_days": 12},
     "15min": {"td_interval": "15min",  "step_days": 60},
@@ -40,15 +39,15 @@ TIMEFRAME_CONFIG = {
     "1w":    {"td_interval": "1week",  "step_days": 3650},
 }
 
-
 REQUIRED_COLUMNS = [
     "Date", "Ticker", "Open", "High", "Low", "Close", "Volume"
 ]
 
 td = TDClient(apikey=API_KEY)
 
+
 # =====================
-# FETCH (STAGING)
+# FETCH
 # =====================
 
 def fetch_twelvedata(symbol, interval, start, end) -> pd.DataFrame:
@@ -63,11 +62,11 @@ def fetch_twelvedata(symbol, interval, start, end) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame()
 
-    return df.reset_index()  # datetime остаётся как есть
+    return df.reset_index()
 
 
 # =====================
-# NORMALIZE (CORE)
+# NORMALIZE
 # =====================
 
 def normalize_ohlcv(staging_df: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -89,6 +88,24 @@ def normalize_ohlcv(staging_df: pd.DataFrame, ticker: str) -> pd.DataFrame:
 
 
 # =====================
+# 🔥 НОВОЕ: расчет % колонок
+# =====================
+
+def add_percentage_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    cols = ["Open", "High", "Low", "Close", "Volume"]
+
+    for col in cols:
+        df[f"{col}_perc"] = (
+            df.groupby("Ticker")[col]
+            .pct_change() * 100
+        )
+
+    return df
+
+
+# =====================
 # UPDATE ONE INTERVAL
 # =====================
 
@@ -100,7 +117,6 @@ def update_table(interval: str):
     if file_path.exists():
         df = pd.read_parquet(file_path)
 
-        # миграция старых файлов
         if "Date" not in df.columns and "Datetime" in df.columns:
             df = df.rename(columns={"Datetime": "Date"})
 
@@ -153,6 +169,9 @@ def update_table(interval: str):
               .reset_index(drop=True)
         )
 
+        # 🔥 ВАЖНО: добавляем % колонки перед сохранением
+        df_updated = add_percentage_features(df_updated)
+
         df_updated.to_parquet(file_path, index=False)
         print(f"[{interval}] added {len(new_data)} rows")
     else:
@@ -173,7 +192,6 @@ def update_all():
     clean_all_datasets()
 
     print("\nUpdate & cleaning finished.")
-
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from statsmodels.tsa.stattools import adfuller, kpss
 
 def check_stationarity(
     df: pd.DataFrame,
-    target_cols: list[str] | None = None,
+    target_cols: list[str],
     test: str = "ADF",
     alpha: float = 0.05,
 ) -> pd.DataFrame:

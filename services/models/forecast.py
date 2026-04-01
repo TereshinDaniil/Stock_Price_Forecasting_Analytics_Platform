@@ -6,6 +6,22 @@ from services.models.naive import (
     drift_forecast,
     exponential_smoothing_forecast,
 )
+from services.models.lgb import lgb_forecast
+
+
+def add_percentage_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    cols = ["Open", "High", "Low", "Close", "Volume"]
+
+    for col in cols:
+        if col in df.columns:
+            df[f"{col}_perc"] = (
+                df.groupby("Ticker")[col]
+                .pct_change() * 100
+            )
+
+    return df
 
 
 def run_naive_model(
@@ -14,9 +30,9 @@ def run_naive_model(
     horizon: int,
     model: str,
 ):
-    # 1️⃣ загрузка дневных данных
     df = pd.read_parquet("data/day_data.parquet")
-    df["Date"] = pd.to_datetime(df["Date"], utc=True)
+    df["Date"] = pd.to_datetime(df["Date"], utc=True, errors="coerce")
+    df = add_percentage_features(df)
 
     df = (
         df[df["Ticker"] == ticker]
@@ -35,7 +51,6 @@ def run_naive_model(
     if len(series) < 30:
         raise ValueError("Недостаточно данных для прогноза")
 
-    # 2️⃣ выбор модели
     if model == "naive":
         forecast = naive_forecast(series, horizon)
 
@@ -51,10 +66,12 @@ def run_naive_model(
     elif model == "exp_smoothing":
         forecast = exponential_smoothing_forecast(series, horizon)
 
+    elif model == "lgb":
+        forecast, _ = lgb_forecast(series, horizon)
+
     else:
         raise ValueError("Неизвестная модель")
 
-    # 3️⃣ даты прогноза
     last_date = df["Date"].iloc[-1]
     future_dates = pd.date_range(
         start=last_date + pd.Timedelta(days=1),

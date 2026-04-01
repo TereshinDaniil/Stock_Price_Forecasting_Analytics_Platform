@@ -1,0 +1,15 @@
+pandas
+numpy
+lightgbm
+fastapi
+uvicorn
+pydantic
+requests
+streamlit
+plotly
+python-dotenv
+twelvedata
+pyarrow
+statsmodels
+ruptures
+matplotlib

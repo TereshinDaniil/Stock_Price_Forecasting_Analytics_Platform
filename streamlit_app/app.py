@@ -1,5 +1,7 @@
 import os
+import sys
 from datetime import date, timedelta
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -7,6 +9,11 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from typing import Optional, List
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from services.outliers import detect_ohlcv_outliers
 
 FASTAPI_BASE = os.getenv("FASTAPI_BASE", "http://127.0.0.1:8000")
@@ -21,14 +28,16 @@ OHLC_FEATURES = ["Open", "High", "Low", "Close"]
 # helpers
 def fetch_json(path: str, params: Optional[dict] = None, method: str = "GET", body: Optional[dict] = None):
     url = f"{FASTAPI_BASE}{path}"
+    timeout = 180
     try:
         if method == "GET":
-            r = requests.get(url, params=params, timeout=60)
+            r = requests.get(url, params=params, timeout=timeout)
         else:
-            r = requests.post(url, json=body, timeout=60)
+            r = requests.post(url, json=body, timeout=timeout)
     except Exception as e:
         st.error(f"Не удалось подключиться к FastAPI: {e}")
         st.stop()
+        raise RuntimeError("FastAPI connection failed") from e
 
     if r.status_code != 200:
         st.error(f"Ошибка FastAPI: {r.status_code}")
@@ -41,6 +50,7 @@ def fetch_json(path: str, params: Optional[dict] = None, method: str = "GET", bo
         else:
             st.text(r.text)
         st.stop()
+        raise RuntimeError(f"FastAPI returned status {r.status_code}")
 
     return r.json()
 
@@ -282,18 +292,24 @@ with tab_forecast:
     with col2:
         model = st.selectbox(
             "Model",
-            ["naive", "seasonal_naive", "moving_average", "drift", "exp_smoothing", "lgb"],
+            ["naive", "seasonal_naive", "moving_average", "drift", "exp_smoothing", "random_forest", "linear", "mlp", "rnn", "chronos"],
             index=0
         )
 
     with col3:
         horizon = st.number_input("Horizon", min_value=1, max_value=365, value=30)
 
+    rnn_type = "lstm"
+    if model == "rnn":
+        rnn_type = st.selectbox("RNN type", ["lstm", "gru"], index=0)
+
     if target in PERCENT_FEATURES:
         st.info("Выбран процентный признак. Прогноз будет строиться для процентных изменений, а не для абсолютной цены.")
 
     if st.button("Спрогнозировать", type="primary", key="run_forecast"):
         payload = {"ticker": ticker, "target": target, "horizon": int(horizon), "model": model}
+        if model == "rnn":
+            payload["rnn_type"] = rnn_type
 
         with st.expander("Payload"):
             st.json(payload)

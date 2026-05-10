@@ -1,5 +1,5 @@
 pandas
-numpy
+numpy<2
 lightgbm
 fastapi
 uvicorn
@@ -13,3 +13,6 @@ pyarrow
 statsmodels
 ruptures
 matplotlib
+scikit-learn
+torch
+chronos-forecasting

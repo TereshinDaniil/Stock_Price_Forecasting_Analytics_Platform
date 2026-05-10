@@ -159,6 +159,17 @@ pre {
 <option value="moving_average">moving_average</option>
 <option value="drift">drift</option>
 <option value="exp_smoothing">exp_smoothing</option>
+<option value="random_forest">random_forest</option>
+<option value="linear">linear</option>
+<option value="mlp">mlp</option>
+<option value="rnn">rnn</option>
+<option value="chronos">chronos</option>
+</select>
+</label>
+<label id="rnn_type_label" style="display:none;">RNN type
+<select id="rnn_type">
+<option value="lstm">lstm</option>
+<option value="gru">gru</option>
 </select>
 </label>
 <button onclick="openForecast()">Run</button>
@@ -212,7 +223,13 @@ window.onload = async () => {
     await fillSelect("acf_feature", "/meta/features", "Close");
     await fillSelect("lag_feature", "/meta/features", "Close");
     await fillSelect("fc_target", "/meta/features", "Close");
+    fc_model.addEventListener("change", toggleRNNType);
+    toggleRNNType();
 };
+
+function toggleRNNType() {
+    rnn_type_label.style.display = fc_model.value === "rnn" ? "inline-block" : "none";
+}
 
 function openClosePrice() {
     window.open(`/eda/close-price?ticker=${cp_ticker.value}&start_date=${cp_start.value}&end_date=${cp_end.value}`);
@@ -240,6 +257,9 @@ async function openForecast() {
         horizon: Number(fc_horizon.value),
         model: fc_model.value
     };
+    if (fc_model.value === "rnn") {
+        payload.rnn_type = rnn_type.value;
+    }
 
     try {
         const res = await fetch("/forward", {

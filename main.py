@@ -35,8 +35,13 @@ class ForwardRequest(BaseModel):
         "moving_average",
         "drift",
         "exp_smoothing",
-        "lgb"
+        "random_forest",
+        "linear",
+        "mlp",
+        "rnn",
+        "chronos",
     ] = "naive"
+    rnn_type: Literal["lstm", "gru"] = "lstm"
 
 
 def add_percentage_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -102,9 +107,12 @@ def forward(request: ForwardRequest = Body(...)):
             target=request.target,
             horizon=request.horizon,
             model=request.model,
+            rnn_type=request.rnn_type,
         )
-    except Exception:
-        raise HTTPException(status_code=403, detail="модель не смогла обработать данные")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка модели: {e}")
 
     forecast_result = [
         {"date": row["Date"].strftime("%Y-%m-%d"), "value": float(row["Forecast"])}
@@ -143,6 +151,7 @@ def forward(request: ForwardRequest = Body(...)):
         "ticker": request.ticker,
         "target": request.target,
         "model": request.model,
+        "rnn_type": request.rnn_type if request.model == "rnn" else None,
         "horizon": request.horizon,
         "history_window": history_window,
         "history": history_result,

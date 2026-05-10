@@ -172,6 +172,11 @@ KernelCPD и PELT.
 - moving_average
 - drift
 - exp_smoothing
+- random_forest
+- linear
+- mlp
+- rnn
+- chronos
 
 У пользователя есть возможность выбрать 
 - акцию для предсказания 
@@ -228,5 +233,3 @@ KernelCPD и PELT.
 ## Демонстрация работы сервиса
 
 Скриншоты и записаь экрана работы сервиса находятся в папке Screenshots
-
-

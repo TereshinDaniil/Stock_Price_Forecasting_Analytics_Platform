@@ -8,48 +8,15 @@ from services.models.naive import (
 )
 from services.models.linear import linear_forecast
 from services.models.random_forest import random_forest_forecast
+from services.data_service import get_series
 
 
-def add_percentage_features(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    cols = ["Open", "High", "Low", "Close", "Volume"]
-
-    for col in cols:
-        if col in df.columns:
-            df[f"{col}_perc"] = (
-                df.groupby("Ticker")[col]
-                .pct_change() * 100
-            )
-
-    return df
-
-
-def run_naive_model(
-    ticker: str,
-    target: str,
+def forecast_series(
+    series,
     horizon: int,
     model: str,
     rnn_type: str = "lstm",
 ):
-    df = pd.read_parquet("data/day_data.parquet")
-    df["Date"] = pd.to_datetime(df["Date"], utc=True, errors="coerce")
-    df = add_percentage_features(df)
-
-    df = (
-        df[df["Ticker"] == ticker]
-        .sort_values("Date")
-        .reset_index(drop=True)
-    )
-
-    if df.empty:
-        raise ValueError("Нет данных для выбранного тикера")
-
-    if target not in df.columns:
-        raise ValueError(f"Признак '{target}' не найден")
-
-    series = df[target].dropna()
-
     if len(series) < 30:
         raise ValueError("Недостаточно данных для прогноза")
 
@@ -106,6 +73,20 @@ def run_naive_model(
 
     else:
         raise ValueError("Неизвестная модель")
+
+    return forecast
+
+
+def run_naive_model(
+    ticker: str,
+    target: str,
+    horizon: int,
+    model: str,
+    rnn_type: str = "lstm",
+):
+    df = get_series(ticker=ticker, target=target)
+    series = df["value"].dropna()
+    forecast = forecast_series(series, horizon, model, rnn_type)
 
     last_date = df["Date"].iloc[-1]
     future_dates = pd.date_range(

@@ -1,0 +1,45 @@
+{
+  "ticker": "AAPL",
+  "target": "Close",
+  "final_model": "linear",
+  "seed": 42,
+  "data_path": "data/day_data.parquet",
+  "rows_total": 5053,
+  "train_rows_for_selection": 4993,
+  "validation_rows": 30,
+  "final_train_rows": 5023,
+  "test_rows": 30,
+  "feature_order": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "lag_7",
+    "lag_14",
+    "lag_28",
+    "rolling_mean_7",
+    "rolling_std_7",
+    "rolling_min_7",
+    "rolling_max_7",
+    "rolling_mean_14",
+    "rolling_std_14",
+    "rolling_min_14",
+    "rolling_max_14",
+    "rolling_mean_28",
+    "rolling_std_28",
+    "rolling_min_28",
+    "rolling_max_28"
+  ],
+  "lags": [
+    1,
+    2,
+    3,
+    7,
+    14,
+    28
+  ],
+  "rolling_windows": [
+    7,
+    14,
+    28
+  ]
+}

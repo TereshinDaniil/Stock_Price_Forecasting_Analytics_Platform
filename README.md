@@ -219,6 +219,85 @@ KernelCPD и PELT.
 }
 ```
 
+---
+
+## Чекпойнт наблюдаемости через MLflow
+
+Финальная версия модели логируется в MLflow с локальным S3-совместимым хранилищем MinIO.
+Пайплайн сравнивает ранее реализованные модели, выбирает лучшую по `test_rmse`, переобучает
+выбранную модель и фиксирует только один PRD-run.
+
+### 1. Поднять MLflow и локальный S3
+
+```bash
+docker compose up -d --build
+```
+
+После запуска:
+
+- интерфейс MLflow: http://127.0.0.1:5000
+- интерфейс MinIO: http://127.0.0.1:9001
+- логин MinIO: `mlflow`
+- пароль MinIO: `mlflow-secret`
+- бакет для артефактов: `mlflow-artifacts`
+
+### 2. Установить зависимости
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 3. Переобучить и залоггировать PRD-модель
+
+```bash
+python scripts/train_prd_mlflow.py --ticker AAPL --target Close
+```
+
+Скрипт выполняет:
+
+- chronological train / validation / test split
+- сравнение базовой модели `naive` с кандидатами `seasonal_naive`, `moving_average`, `drift`, `linear`, `random_forest`
+- выбор лучшей модели по `test_rmse`
+- переобучение финальной модели
+- логгирование параметров, train/validation/test метрик и PRD-тегов
+- регистрацию модели `stock_price_forecaster_prd`
+- установку псевдонима модели `PRD`
+- сохранение артефактов в MinIO через MLflow
+
+Ключевые артефакты:
+
+- `candidate_metrics.csv`
+- `test_predictions.csv`
+- `error_analysis_top20.csv`
+- `robustness_checks.csv`
+- `final_model_report.md`
+- `test_forecast.png`
+- `test_residuals.png`
+- `validation_model_comparison.png`
+
+Локальные копии артефактов сохраняются в `artifacts/mlflow_prd/`, а отчет также дублируется в
+`reports/mlflow_prd/`.
+
+### 4. Проверить исследовательский ноутбук
+
+Откройте `notebooks/01_research_mlflow_connection.ipynb` и выполните ячейки подключения к MLflow.
+
+### 5. Загрузить PRD-модель и сделать тестовый прогноз
+
+Откройте чистый ноутбук:
+
+```text
+notebooks/02_load_prd_model_predict.ipynb
+```
+
+Он загружает модель из MLflow по псевдониму:
+
+```text
+models:/stock_price_forecaster_prd@PRD
+```
+
+и строит тестовый прогноз.
+
 ### Пример ответа прогноза
 
 ```json

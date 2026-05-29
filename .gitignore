@@ -4,9 +4,15 @@
 # python
 __pycache__/
 *.py[cod]
+.cache/
 
 # virtual env
 .venv/
+
+# local experiment stores
+mlruns/
+mlruns_local_test/
+mlartifacts/
 
 # ide
 .idea/
